@@ -2,4 +2,4 @@
 
  Flutter ffmpeg web testing
 
-all of video/audio processing cases here
+All of video/audio processing cases here

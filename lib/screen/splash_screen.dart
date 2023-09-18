@@ -12,7 +12,8 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     FfmpegManager.instance.loadFFmpeg(() {
-      Navigator.pushReplacementNamed(context, '/home');
+      // Navigator.pushReplacementNamed(context, '/home');
+      Navigator.pushReplacementNamed(context, '/vlogMaker');
     });
     super.initState();
   }

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:typed_data';
+import 'package:cross_file/cross_file.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:ffmpeg_wasm/ffmpeg_wasm.dart';
@@ -7,6 +8,19 @@ import 'package:flutter_ffmpeg_desktopweb/app_const.dart';
 import 'package:flutter_ffmpeg_desktopweb/file_utils.dart';
 
 import '../ffmpeg_manager.dart';
+
+enum ExportType { ratio916, ratio169, ratio11, autoCrop }
+
+class Media {
+  bool isVideo;
+  Uint8List bytes;
+
+  Media(this.isVideo, this.bytes);
+
+  static bool isVideoType(String ext) {
+    return ext.contains('mp4');
+  }
+}
 
 class VlogMakerScreen extends StatefulWidget {
   const VlogMakerScreen({Key? key}) : super(key: key);
@@ -18,19 +32,22 @@ class VlogMakerScreen extends StatefulWidget {
 class _VlogMakerScreenState extends State<VlogMakerScreen> {
   FilePickerResult? filePickerResult;
 
-  /// File store
-  final mediaList = ValueNotifier<List<Uint8List>>([]);
+  /// Emit changes
+  final mediaList = ValueNotifier<List<Media>>([]);
   final audioList = ValueNotifier<List<String>>([]);
+  final progress = ValueNotifier<ProgressParam?>(null);
+  final cmdStream = ValueNotifier<String>('');
 
   /// CMD
-  String cmd = ''
-      '-f concat '
-      '-i input.txt '
-      '';
+  String cmd = '';
 
   @override
   void initState() {
     FfmpegManager.instance.loadFFmpeg(() {}, setLog: false);
+    FfmpegManager.instance.ffmpeg.setProgress((p) {
+      progress.value = p;
+    });
+
     super.initState();
   }
 
@@ -57,19 +74,49 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
 
           /// Export button
           ///
-          Row(
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              OutlinedButton(
-                  onPressed: _handleExport,
-                  child: const Text('Export as AutoCrop')),
-              OutlinedButton(
-                  onPressed: _handleExport,
-                  child: const Text('Export as 9:16')),
-              OutlinedButton(
-                  onPressed: _handleExport,
-                  child: const Text('Export as 16:9')),
-              OutlinedButton(
-                  onPressed: _handleExport, child: const Text('Export as 1:1')),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  OutlinedButton(
+                      onPressed: () => _handleExport(ExportType.autoCrop),
+                      child: const Text('Export as AutoCrop')),
+                  OutlinedButton(
+                      onPressed: () => _handleExport(ExportType.autoCrop),
+                      child: const Text('Export as 9:16')),
+                  OutlinedButton(
+                      onPressed: () => _handleExport(ExportType.autoCrop),
+                      child: const Text('Export as 16:9')),
+                  OutlinedButton(
+                      onPressed: () => _handleExport(ExportType.autoCrop),
+                      child: const Text('Export as 1:1')),
+                ],
+              ),
+              ValueListenableBuilder(
+                  valueListenable: cmdStream,
+                  builder: (context, data, __) {
+                    if (data.isEmpty) return const SizedBox();
+                    return Text('CMD ---> [$data]');
+                  }),
+              ValueListenableBuilder(
+                  valueListenable: progress,
+                  builder: (context, data, __) {
+                    if (data == null) return const SizedBox();
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator()),
+                        const SizedBox(width: 12),
+                        Text(
+                            'Rendering ${(data.ratio * 100).toStringAsFixed(2)}% - ${data.time}'),
+                      ],
+                    );
+                  })
             ],
           ),
 
@@ -82,12 +129,14 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
                     itemCount: data.length,
                     scrollDirection: Axis.horizontal,
                     itemBuilder: (_, index) {
-                      final bytes = data.elementAt(index);
+                      final item = data.elementAt(index);
                       return AspectRatio(
                         aspectRatio: 1.0,
                         child: Container(
                           color: Colors.grey,
-                          child: Image.memory(bytes, fit: BoxFit.cover),
+                          child: (item.isVideo)
+                              ? const Center(child: Text('Video'))
+                              : Image.memory(item.bytes, fit: BoxFit.cover),
                         ),
                       );
                     });
@@ -144,18 +193,25 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
   }
 
   Future<void> pickVideoImageFiles() async {
-    filePickerResult = await FilePicker.platform
-        .pickFiles(type: FileType.image, allowMultiple: true);
+    filePickerResult = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['mp4', 'png', 'jpg', 'jpeg'],
+        allowMultiple: true);
 
     if (filePickerResult != null) {
-      List<Uint8List> picked = [];
+      List<Media> picked = [];
       String input = '';
       for (int i = 0; i < filePickerResult!.files.length; ++i) {
         final file = filePickerResult!.files.elementAt(i);
-        picked.add(file.bytes!);
-        FfmpegManager.instance.ffmpeg.writeFile('input$i.png', file.bytes!);
-        input +=
-            'file ${'input$i.png'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
+        bool isVideo = Media.isVideoType(file.extension ?? '');
+        picked.add(Media(isVideo, file.bytes!));
+        FfmpegManager.instance.ffmpeg.writeFile('input$i.${file.extension}', file.bytes!);
+        if(isVideo) {
+          input += 'file ${'input$i.${file.extension}'}\nduration ${AppConst.VIDEO_DEFAULT_DURATION}\n';
+        }
+        else {
+          input += 'file ${'input$i.${file.extension}'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
+        }
       }
       FfmpegManager.instance.ffmpeg
           .writeFile('input.txt', Uint8List.fromList(utf8.encode(input)));
@@ -163,10 +219,22 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
     }
   }
 
-  Future<void> _handleExport() async {
-    cmd = '$cmd output.mp4';
-    print('HAHA _handleExport cmd $cmd');
+  Future<void> _handleExport(ExportType type) async {
+    if (type == ExportType.autoCrop) {
+      cmd = '$cmd -c:v libx264 ';
+    } else {}
+    cmd = '-f concat -safe 0 -i input.txt $cmd output.mp4';
+    cmdStream.value = cmd;
+    print('HAHA --- [_handleExport]  --- cmd [$cmd]');
     await FfmpegManager.instance.ffmpeg.runCommand(cmd);
-    FileUtils.downloadVideoOutputInWeb('output.mp4');
+    final exportBytes = FfmpegManager.instance.ffmpeg.readFile('output.mp4');
+    final outputFile = XFile.fromData(exportBytes);
+
+    print(
+        'HAHA --- [_handleExport]  --- outputFile [$outputFile, ${outputFile.name}, ${outputFile.mimeType}]');
+    if (exportBytes.isNotEmpty) {
+      FileUtils.downloadVideoOutputInWeb('output.mp4');
+      progress.value = null;
+    }
   }
 }
