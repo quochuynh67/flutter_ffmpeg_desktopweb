@@ -89,11 +89,19 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   OutlinedButton(
                     onPressed: create720PQualityVideo,
-                    child: const Text('Create 720P Quality Videos'),
+                    child: const Text('Video 720P Quality'),
                   ),
                   OutlinedButton(
                     onPressed: create480PQualityVideo,
-                    child: const Text('Create 480P Quality Videos'),
+                    child: const Text('Video 480P Quality'),
+                  ),
+                  OutlinedButton(
+                    onPressed: heicToJpeg,
+                    child: const Text('[IOS] HEIC to jpeg'),
+                  ),
+                  OutlinedButton(
+                    onPressed: movToMp4,
+                    child: const Text('[IOS] MOV to MP4'),
                   ),
                   OutlinedButton(
                     onPressed: navigateToVlogMakerScreen,
@@ -108,18 +116,24 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<void> pickFile() async {
-    filePickerResult =
-        await FilePicker.platform.pickFiles(type: FileType.video);
+  Future<void> pickFile({List<String>? allowExt}) async {
+    if (allowExt != null && allowExt.isNotEmpty) {
+      filePickerResult = await FilePicker.platform
+          .pickFiles(type: FileType.custom, allowedExtensions: allowExt);
+    } else {
+      filePickerResult =
+          await FilePicker.platform.pickFiles(type: FileType.video);
+    }
 
     if (filePickerResult != null &&
         filePickerResult!.files.single.bytes != null) {
       /// Writes File to memory
-      FfmpegManager.instance.ffmpeg
-          .writeFile('input.mp4', filePickerResult!.files.single.bytes!);
+      FfmpegManager.instance.ffmpeg.writeFile(
+          'input.${filePickerResult!.files.single.extension}',
+          filePickerResult!.files.single.bytes!);
 
       setState(() {
-        selectedFile = filePickerResult!.files.single.name;
+        selectedFile = 'input.${filePickerResult!.files.single.extension}';
       });
     }
   }
@@ -129,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
     await pickFile();
     await FfmpegManager.instance.ffmpeg.run([
       '-i',
-      'input.mp4',
+      '$selectedFile',
       '-vf',
       "select='eq(n,0)'",
       '-vsync',
@@ -231,5 +245,68 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void navigateToVlogMakerScreen() {
     Navigator.pushNamed(context, '/vlogMaker');
+  }
+
+  Future<void> heicToJpeg() async {
+    await pickFile(allowExt: ['heic']);
+    setState(() {
+      conversionStatus = 'Started - HEIC to jpeg/png';
+    });
+    await FfmpegManager.instance.ffmpeg.run([
+      '-i',
+      '$selectedFile',
+      'output.jpg'
+    ]);
+    setState(() {
+      conversionStatus = 'Saving';
+    });
+    final hqVideo = FfmpegManager.instance.ffmpeg.readFile('output.jpg');
+    if (hqVideo.isEmpty) {
+      setState(() {
+        conversionStatus = 'Failed';
+      });
+    }
+    setState(() {
+      conversionStatus = 'Downloading';
+    });
+    js.context.callMethod('webSaveAs', [
+      html.Blob([hqVideo]),
+      'output.jpg'
+    ]);
+    setState(() {
+      conversionStatus = 'Completed';
+    });
+  }
+
+  Future<void> movToMp4() async {
+    await pickFile(allowExt: ['mov']);
+    setState(() {
+      conversionStatus = 'Started - MOV to MP4';
+    });
+    await FfmpegManager.instance.ffmpeg.run([
+      '-i',
+      '$selectedFile',
+      '-c', 'copy', '-movflags' ,'+faststart',
+      'output.mp4'
+    ]);
+    setState(() {
+      conversionStatus = 'Saving';
+    });
+    final hqVideo = FfmpegManager.instance.ffmpeg.readFile('output.mp4');
+    if (hqVideo.isEmpty) {
+      setState(() {
+        conversionStatus = 'Failed';
+      });
+    }
+    setState(() {
+      conversionStatus = 'Downloading';
+    });
+    js.context.callMethod('webSaveAs', [
+      html.Blob([hqVideo]),
+      'output.mp4'
+    ]);
+    setState(() {
+      conversionStatus = 'Completed';
+    });
   }
 }

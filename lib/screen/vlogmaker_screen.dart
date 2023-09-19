@@ -39,7 +39,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
   final cmdStream = ValueNotifier<String>('');
 
   /// CMD
-  String cmd = '';
+  List<String> cmd = ['-f', 'concat', '-safe', '0', '-i', 'input.txt'];
 
   @override
   void initState() {
@@ -62,7 +62,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
               ///
               OutlinedButton(
                   onPressed: pickVideoImageFiles,
-                  child: const Text('Select video/image')),
+                  child: const Text('Select image')),
 
               /// Select audio Button
               ///
@@ -98,7 +98,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
                   valueListenable: cmdStream,
                   builder: (context, data, __) {
                     if (data.isEmpty) return const SizedBox();
-                    return Text('CMD ---> [$data]');
+                    return Text('cmd: $data');
                   }),
               ValueListenableBuilder(
                   valueListenable: progress,
@@ -113,7 +113,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
                             child: CircularProgressIndicator()),
                         const SizedBox(width: 12),
                         Text(
-                            'Rendering ${(data.ratio * 100).toStringAsFixed(2)}% - ${data.time}'),
+                            'Rendering ${(data.ratio * 100).ceil()}% - ${data.time}'),
                       ],
                     );
                   })
@@ -186,7 +186,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
             '\n- extension: ${file.extension} '
             '\n- bytes: ${file.bytes?.length}');
 
-        cmd += '-i audio$i.mp3 ';
+        cmd.addAll(['-i', 'audio$i.mp3']);
       }
       audioList.value = picked;
     }
@@ -195,7 +195,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
   Future<void> pickVideoImageFiles() async {
     filePickerResult = await FilePicker.platform.pickFiles(
         type: FileType.custom,
-        allowedExtensions: ['mp4', 'png', 'jpg', 'jpeg'],
+        allowedExtensions: ['png', 'jpg', 'jpeg'],
         allowMultiple: true);
 
     if (filePickerResult != null) {
@@ -205,12 +205,14 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
         final file = filePickerResult!.files.elementAt(i);
         bool isVideo = Media.isVideoType(file.extension ?? '');
         picked.add(Media(isVideo, file.bytes!));
-        FfmpegManager.instance.ffmpeg.writeFile('input$i.${file.extension}', file.bytes!);
-        if(isVideo) {
-          input += 'file ${'input$i.${file.extension}'}\nduration ${AppConst.VIDEO_DEFAULT_DURATION}\n';
-        }
-        else {
-          input += 'file ${'input$i.${file.extension}'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
+        FfmpegManager.instance.ffmpeg
+            .writeFile('input$i.${file.extension}', file.bytes!);
+        if (isVideo) {
+          input +=
+              'file ${'input$i.${file.extension}'}\nduration ${AppConst.VIDEO_DEFAULT_DURATION}\n';
+        } else {
+          input +=
+              'file ${'input$i.${file.extension}'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
         }
       }
       FfmpegManager.instance.ffmpeg
@@ -221,12 +223,22 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
 
   Future<void> _handleExport(ExportType type) async {
     if (type == ExportType.autoCrop) {
-      cmd = '$cmd -c:v libx264 ';
-    } else {}
-    cmd = '-f concat -safe 0 -i input.txt $cmd output.mp4';
-    cmdStream.value = cmd;
+      cmd.addAll(
+          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+    } else if(type == ExportType.ratio11){
+      cmd.addAll(
+          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+    }else if(type == ExportType.ratio916){
+      cmd.addAll(
+          ['-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+    }else if(type == ExportType.ratio169){
+      cmd.addAll(
+          ['-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+    }
+
+    cmdStream.value = cmd.toString();
     print('HAHA --- [_handleExport]  --- cmd [$cmd]');
-    await FfmpegManager.instance.ffmpeg.runCommand(cmd);
+    await FfmpegManager.instance.ffmpeg.run(cmd);
     final exportBytes = FfmpegManager.instance.ffmpeg.readFile('output.mp4');
     final outputFile = XFile.fromData(exportBytes);
 
