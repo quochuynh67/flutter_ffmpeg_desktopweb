@@ -105,7 +105,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   OutlinedButton(
                     onPressed: navigateToVlogMakerScreen,
-                    child: const Text('Vlog maker'),
+                    child: const Text('Images to video with music'),
                   ),
                 ],
               ),

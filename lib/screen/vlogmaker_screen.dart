@@ -39,7 +39,9 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
   final cmdStream = ValueNotifier<String>('');
 
   /// CMD
-  List<String> cmd = ['-f', 'concat', '-safe', '0', '-i', 'input.txt'];
+  List<String> cmd = [];
+  List<String> clipInput = ['-f', 'concat', '-safe', '0', '-i', 'input.txt',];
+  List<String> audioInput = [];
 
   @override
   void initState() {
@@ -84,13 +86,13 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
                       onPressed: () => _handleExport(ExportType.autoCrop),
                       child: const Text('Export as AutoCrop')),
                   OutlinedButton(
-                      onPressed: () => _handleExport(ExportType.autoCrop),
+                      onPressed: () => _handleExport(ExportType.ratio916),
                       child: const Text('Export as 9:16')),
                   OutlinedButton(
-                      onPressed: () => _handleExport(ExportType.autoCrop),
+                      onPressed: () => _handleExport(ExportType.ratio169),
                       child: const Text('Export as 16:9')),
                   OutlinedButton(
-                      onPressed: () => _handleExport(ExportType.autoCrop),
+                      onPressed: () => _handleExport(ExportType.ratio11),
                       child: const Text('Export as 1:1')),
                 ],
               ),
@@ -113,7 +115,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
                             child: CircularProgressIndicator()),
                         const SizedBox(width: 12),
                         Text(
-                            'Rendering ${(data.ratio * 100).ceil()}% - ${data.time}'),
+                            'Rendering ${(data.ratio * 300).ceil()}% - ${data.time}'),
                       ],
                     );
                   })
@@ -122,32 +124,8 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
 
           /// Clips list
           ///
-          Expanded(
-            child: ValueListenableBuilder(
-              builder: (context, data, __) {
-                return ListView.builder(
-                    itemCount: data.length,
-                    scrollDirection: Axis.horizontal,
-                    itemBuilder: (_, index) {
-                      final item = data.elementAt(index);
-                      return AspectRatio(
-                        aspectRatio: 1.0,
-                        child: Container(
-                          color: Colors.grey,
-                          child: (item.isVideo)
-                              ? const Center(child: Text('Video'))
-                              : Image.memory(item.bytes, fit: BoxFit.cover),
-                        ),
-                      );
-                    });
-              },
-              valueListenable: mediaList,
-            ),
-          ),
-
-          /// Clips list
-          ///
-          Expanded(
+          SizedBox(
+            height: 300,
             child: ValueListenableBuilder(
               builder: (context, data, __) {
                 return ListView.builder(
@@ -157,8 +135,38 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
                       final item = data.elementAt(index);
                       return Container(
                         color: Colors.grey,
+                        padding: const EdgeInsets.all(16),
+                        child: (item.isVideo)
+                            ? const Center(child: Text('Video'))
+                            : Image.memory(item.bytes, fit: BoxFit.cover),
+                      );
+                    });
+              },
+              valueListenable: mediaList,
+            ),
+          ),
+
+          /// Audio  list
+          ///
+          SizedBox(
+            height: 100,
+            child: ValueListenableBuilder(
+              builder: (context, data, __) {
+                return ListView.builder(
+                    itemCount: data.length,
+                    scrollDirection: Axis.horizontal,
+                    itemBuilder: (_, index) {
+                      final item = data.elementAt(index);
+                      return Container(
+                        width: MediaQuery.sizeOf(context).width,
+                        color: Colors.grey,
                         padding: const EdgeInsets.all(8.0),
-                        child: Text(item),
+                        child: Stack(
+                          children: [
+                            Image.network('https://i.stack.imgur.com/ZU3tO.png', width: MediaQuery.sizeOf(context).width,height: 100,fit: BoxFit.fitWidth),
+                            Text(item),
+                          ],
+                        ),
                       );
                     });
               },
@@ -186,7 +194,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
             '\n- extension: ${file.extension} '
             '\n- bytes: ${file.bytes?.length}');
 
-        cmd.addAll(['-i', 'audio$i.mp3']);
+        audioInput.addAll(['-i', 'audio$i.mp3']);
       }
       audioList.value = picked;
     }
@@ -209,9 +217,11 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
             .writeFile('input$i.${file.extension}', file.bytes!);
         if (isVideo) {
           input +=
+              // 'file ${'input$i.${file.extension}'}\nduration ${AppConst.VIDEO_DEFAULT_DURATION}\n';
               'file ${'input$i.${file.extension}'}\nduration ${AppConst.VIDEO_DEFAULT_DURATION}\n';
         } else {
           input +=
+              // 'file ${'input$i.${file.extension}'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
               'file ${'input$i.${file.extension}'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
         }
       }
@@ -222,18 +232,21 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
   }
 
   Future<void> _handleExport(ExportType type) async {
+    cmd.clear();
+    cmd.insertAll(0, clipInput);
+    cmd.insertAll(0, audioInput);
     if (type == ExportType.autoCrop) {
       cmd.addAll(
-          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-f', 'concat', '-safe', '0', '-i', 'input.txt','-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     } else if(type == ExportType.ratio11){
       cmd.addAll(
-          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-f', 'concat', '-safe', '0', '-i', 'input.txt','-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     }else if(type == ExportType.ratio916){
       cmd.addAll(
-          ['-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-f', 'concat', '-safe', '0', '-i', 'input.txt','-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     }else if(type == ExportType.ratio169){
       cmd.addAll(
-          ['-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-f', 'concat', '-safe', '0', '-i', 'input.txt', '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     }
 
     cmdStream.value = cmd.toString();
@@ -242,8 +255,7 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
     final exportBytes = FfmpegManager.instance.ffmpeg.readFile('output.mp4');
     final outputFile = XFile.fromData(exportBytes);
 
-    print(
-        'HAHA --- [_handleExport]  --- outputFile [$outputFile, ${outputFile.name}, ${outputFile.mimeType}]');
+    print('HAHA --- [_handleExport]  --- outputFile [$outputFile, ${outputFile.name}, ${outputFile.mimeType}]');
     if (exportBytes.isNotEmpty) {
       FileUtils.downloadVideoOutputInWeb('output.mp4');
       progress.value = null;
