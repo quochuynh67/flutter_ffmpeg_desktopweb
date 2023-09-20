@@ -217,11 +217,9 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
             .writeFile('input$i.${file.extension}', file.bytes!);
         if (isVideo) {
           input +=
-              // 'file ${'input$i.${file.extension}'}\nduration ${AppConst.VIDEO_DEFAULT_DURATION}\n';
               'file ${'input$i.${file.extension}'}\nduration ${AppConst.VIDEO_DEFAULT_DURATION}\n';
         } else {
           input +=
-              // 'file ${'input$i.${file.extension}'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
               'file ${'input$i.${file.extension}'}\nduration ${AppConst.IMAGE_DEFAULT_DURATION}\n';
         }
       }
@@ -237,16 +235,16 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
     cmd.insertAll(0, audioInput);
     if (type == ExportType.autoCrop) {
       cmd.addAll(
-          ['-f', 'concat', '-safe', '0', '-i', 'input.txt','-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     } else if(type == ExportType.ratio11){
       cmd.addAll(
-          ['-f', 'concat', '-safe', '0', '-i', 'input.txt','-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     }else if(type == ExportType.ratio916){
       cmd.addAll(
-          ['-f', 'concat', '-safe', '0', '-i', 'input.txt','-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     }else if(type == ExportType.ratio169){
       cmd.addAll(
-          ['-f', 'concat', '-safe', '0', '-i', 'input.txt', '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          [ '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
     }
 
     cmdStream.value = cmd.toString();
