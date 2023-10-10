@@ -107,6 +107,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     onPressed: navigateToVlogMakerScreen,
                     child: const Text('Images to video with music'),
                   ),
+
+                  OutlinedButton(
+                    onPressed: navigateToQuoteMakerScreen,
+                    child: const Text('Tạo quote/music'),
+                  ),
                 ],
               ),
             ),
@@ -245,6 +250,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void navigateToVlogMakerScreen() {
     Navigator.pushNamed(context, '/vlogMaker');
+  }
+
+  void navigateToQuoteMakerScreen() {
+    Navigator.pushNamed(context, '/quoteMaker');
   }
 
   Future<void> heicToJpeg() async {

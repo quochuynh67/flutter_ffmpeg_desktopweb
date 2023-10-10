@@ -79,22 +79,24 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  OutlinedButton(
-                      onPressed: () => _handleExport(ExportType.autoCrop),
-                      child: const Text('Export as AutoCrop')),
-                  OutlinedButton(
-                      onPressed: () => _handleExport(ExportType.ratio916),
-                      child: const Text('Export as 9:16')),
-                  OutlinedButton(
-                      onPressed: () => _handleExport(ExportType.ratio169),
-                      child: const Text('Export as 16:9')),
-                  OutlinedButton(
-                      onPressed: () => _handleExport(ExportType.ratio11),
-                      child: const Text('Export as 1:1')),
-                ],
+              SingleChildScrollView(
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    OutlinedButton(
+                        onPressed: () => _handleExport(ExportType.autoCrop),
+                        child: const Text('Export as AutoCrop')),
+                    OutlinedButton(
+                        onPressed: () => _handleExport(ExportType.ratio916),
+                        child: const Text('Export as 9:16')),
+                    OutlinedButton(
+                        onPressed: () => _handleExport(ExportType.ratio169),
+                        child: const Text('Export as 16:9')),
+                    OutlinedButton(
+                        onPressed: () => _handleExport(ExportType.ratio11),
+                        child: const Text('Export as 1:1')),
+                  ],
+                ),
               ),
               ValueListenableBuilder(
                   valueListenable: cmdStream,
@@ -235,16 +237,16 @@ class _VlogMakerScreenState extends State<VlogMakerScreen> {
     cmd.insertAll(0, audioInput);
     if (type == ExportType.autoCrop) {
       cmd.addAll(
-          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-af','atrim=duration=20','-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', 'output.mp4']);
     } else if(type == ExportType.ratio11){
       cmd.addAll(
-          ['-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-af','atrim=duration=20','-vf', 'scale=1080:1080:force_original_aspect_ratio=decrease,pad=1080:1080:-1:-1:color=black','-c:v', 'libx264', 'output.mp4']);
     }else if(type == ExportType.ratio916){
       cmd.addAll(
-          ['-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-af','atrim=duration=20','-vf', 'scale=1080:1920:force_original_aspect_ratio=decrease,pad=1080:1920:-1:-1:color=black','-c:v', 'libx264', 'output.mp4']);
     }else if(type == ExportType.ratio169){
       cmd.addAll(
-          [ '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black','-c:v', 'libx264', '-shortest', 'output.mp4']);
+          ['-af','atrim=duration=20', '-vf', 'scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black','-c:v', 'libx264', 'output.mp4']);
     }
 
     cmdStream.value = cmd.toString();

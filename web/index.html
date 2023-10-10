@@ -46,16 +46,20 @@
     <!--  FFMpeg-->
     <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.11.6/dist/ffmpeg.min.js" crossorigin="anonymous"
             async></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/1.3.8/FileSaver.min.js" crossorigin="anonymous"></script>
     <script>
         function webSaveAs(blob, name) {
             saveAs(blob, name);
         }
-
-
     </script>
+
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
 </head>
 <body>
+<!--<script>-->
+<!--  if (!crossOriginIsolated) SharedArrayBuffer = ArrayBuffer;-->
+<!--</script>-->
 <script>
     window.addEventListener('load', function(ev) {
       // Download main.dart.js
@@ -71,6 +75,31 @@
       });
     });
 
+
+</script>
+
+<script>
+    function openBrowser() {
+    // Replace this URL with the one you want to open in Safari
+    var url = "https://viiv.app";
+
+    // Check if the device is running on iOS (for Android, use 'Android' instead of 'iPhone')
+    var isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isIOS) {
+        // If the device is iOS, use the 'window.location.href' to navigate to the URL
+        window.location.href = url;
+        console.log("openBrowser iOS so open href ", url);
+    } else {
+        // If it's not iOS (likely Android or another platform), use 'window.open'
+        window.open(url, '_system');
+        console.log("openBrowser so window.open ", url);
+    }
+}
+
+ function logger(message) {
+        console.log(message);
+    }
 
 </script>
 </body>

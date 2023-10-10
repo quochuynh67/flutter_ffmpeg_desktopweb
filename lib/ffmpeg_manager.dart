@@ -1,5 +1,6 @@
 import 'package:ffmpeg_wasm/ffmpeg_wasm.dart';
 import 'package:flutter/material.dart';
+import 'dart:js' as js;
 
 class FfmpegManager {
   late FFmpeg ffmpeg;
@@ -10,27 +11,42 @@ class FfmpegManager {
 
   bool isLoaded = false;
 
-  Future<void> loadFFmpeg(VoidCallback onInitialized, {bool setLog = true}) async {
-    ffmpeg = createFFmpeg(
-      CreateFFmpegParam(
-        log: true,
-        corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
-      ),
-    );
+  Future<void> loadFFmpeg(VoidCallback onInitialized, {bool setLog = true, Function(String)? onFailed}) async {
+    try{
+      js.context.callMethod('logger', [
+        'FFmpegManager start 1'
+      ]);
+      ffmpeg = createFFmpeg(
+        CreateFFmpegParam(
+          log: true,
+          corePath: 'https://unpkg.com/@ffmpeg/core@0.11.0/dist/ffmpeg-core.js',
+        ),
+      );
 
-    if(setLog) {
-      ffmpeg.setProgress(_onProgressHandler);
-      ffmpeg.setLogger(_onLogHandler);
+      if(setLog) {
+        ffmpeg.setProgress(_onProgressHandler);
+        ffmpeg.setLogger(_onLogHandler);
+      }
+
+      await ffmpeg.load();
+      js.context.callMethod('logger', [
+        'FFmpegManager await ffmpeg.load()'
+      ]);
+      checkLoaded();
+      onInitialized.call();
+    } catch(e) {
+      js.context.callMethod('logger', [
+        'FFmpegManager catch error when init $e'
+      ]);
+      onFailed?.call(e.toString());
     }
-
-    await ffmpeg.load();
-
-    checkLoaded();
-    onInitialized.call();
   }
 
   void checkLoaded() {
     isLoaded = ffmpeg.isLoaded();
+    js.context.callMethod('logger', [
+      'FFmpegManager checkLoaded isLoaded $isLoaded'
+    ]);
   }
 
   void _onProgressHandler(ProgressParam progress) {

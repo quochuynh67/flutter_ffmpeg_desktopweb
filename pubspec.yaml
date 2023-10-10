@@ -38,6 +38,13 @@ dependencies:
   ffmpeg_wasm: ^1.0.1
   file_picker:
   cross_file:
+  image_editor:
+  image_size_getter:
+  exif:
+  screenshot:
+  flutter_colorpicker:
+  rxdart:
+  flutter_font_picker:
 dev_dependencies:
   flutter_test:
     sdk: flutter
