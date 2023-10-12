@@ -2,7 +2,7 @@
 
 Flutter ffmpeg web testing
 
-Hosting URL: https://flutter-ffmpeg-desktopweb.web.app
+Hosting URL: https://flutter-ffmpeg-desktopweb.web.app or https://quoc67.site/flutter_ffmpeg_desktopweb/index.html#/quoteMaker
 
 
 All of video/audio processing cases here
